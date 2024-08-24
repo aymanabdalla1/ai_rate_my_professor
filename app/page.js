@@ -11,6 +11,7 @@ export default function Home() {
   ])
   const [message, setMessage] = useState('')
 
+  
   const sendMessage = async () => {
     setMessage('')
     setMessages((messages) => [
@@ -47,6 +48,8 @@ export default function Home() {
       })
     })
   }
+
+  
   return (
     <Box
       width="100vw"
