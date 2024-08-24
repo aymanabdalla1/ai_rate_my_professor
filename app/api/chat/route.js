@@ -1,21 +1,6 @@
-// app/api/chat/route.js
-
-
-import { NextResponse } from "next/server";
-import { Pinecone } from "@pinecone-database/pinecone";
-import fetch from "node-fetch";
+import { NextResponse } from 'next/server'
+import { Pinecone } from '@pinecone-database/pinecone'
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
-const MODEL = "intfloat/multilingual-e5-large";
-const HUGGINGFACE_API_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
-
-const index = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY,
-})
-  .index("rag-index")
-  .namespace("ns1");
 
 const systemPrompt = `You are an intelligent assistant for the RateMyProfessor system. Your primary role is to help students find the best professors based on their specific queries. Using the Retrieval-Augmented Generation (RAG) approach, you will retrieve relevant information about professors and generate responses to student questions.
 
@@ -71,65 +56,44 @@ const systemPrompt = `You are an intelligent assistant for the RateMyProfessor s
 - **Review:** Valued for her clear and concise lectures. Students find her approachable and helpful.
 `;
 
-async function fetchEmbeddingsWithRetry(text, retries = 5) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${MODEL}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${HUGGINGFACE_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ inputs: text }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        if (response.status === 503) {
-          console.warn(`Model is loading, retrying (${attempt}/${retries})...`);
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        } else {
-          console.error("Error response body:", errorBody);
-          throw new Error(`Failed to fetch embeddings: ${response.statusText}`);
-        }
-      } else {
-        return await response.json();
-      }
-    } catch (error) {
-      if (attempt === retries) {
-        throw error;
-      }
-    }
-  }
-}
-
 export async function POST(req) {
-  try {
-    const messages = await req.json();
-    const userMessage = messages[messages.length - 1];
-    const userQuery = userMessage.content;
+    const data = await req.json();
+    const text = data[data.length - 1].content
 
-    const [queryEmbedding] = await fetchEmbeddingsWithRetry(userQuery);
+    const pc = new Pinecone({
+        apiKey: process.env.PINECONE_API_KEY,
+    })
+    const index = pc.index('rag').namespace('ns1')
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const result = await model.embedContent(text);
+    const embedding = result.embedding;
     const results = await index.query({
-      vector: queryEmbedding,
-      topK: 3,
-    });
+        topK: 3,
+        includeMetadata: true,
+        vector: embedding.values,
+    })
 
-    const context = results.matches.map((match) => match.metadata.review).join("\n");
-    const prompt = `${systemPrompt}\n\n**Query:** ${userQuery}\n\n**Context:** ${context}`;
+    let resultString = ''
+    results.matches.forEach((match) => {
+        resultString +=
+            `
+Returned Results:
+Professor: ${match.id}
+Review: ${match.metadata.review}
+Subject: ${match.metadata.subject}
+Stars: ${match.metadata.stars}
+  \n\n`
+    })
 
-    const response = await genAI.generateText({
-      prompt: prompt,
-      model: "text-davinci-003",
-      maxTokens: 500,
-    });
+    // console.log(resultString)
+    
+    const model_gen = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    return NextResponse.json({ content: response.choices[0].text });
-  } catch (error) {
-    console.error("Error processing request:", error);
-    return NextResponse.json({ error: "Failed to process request." }, { status: 500 });
-  }
+    // const completion = await model_gen.generateContentStream(resultString);
+    const gen_result = await model_gen.generateContent(`${systemPrompt}\nQuery: ${text}\n${data}\n`);
+    const response = await gen_result.response.text();
+
+    return new NextResponse(response)
 }
