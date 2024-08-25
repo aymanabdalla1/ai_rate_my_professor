@@ -96,7 +96,7 @@ export default function Home() {
               color="black"
               fontFamily="Raleway, Arial"
               fontWeight="bold"
-              fontSize={20}
+              fontSize={30}
             >
               Rate my Professor
             </Typography>
