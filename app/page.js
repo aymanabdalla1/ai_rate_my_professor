@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography, Avatar } from '@mui/material'
 import { useState } from 'react'
 
 export default function Home() {
@@ -58,15 +58,25 @@ export default function Home() {
       flexDirection="column"
       justifyContent="center"
       alignItems="center"
+      sx={{
+        backgroundImage: `url('/background.jpg')`,
+        backgroundSize: "cover",
+        backgroundColor: "rgba(0, 0, 0, 0.9)",
+        color: "#f5f5f5"
+    }}
     >
-      <Stack
+      <Stack      
         direction={'column'}
-        width="500px"
-        height="700px"
-        border="1px solid black"
+        width="800px"
+        height="650px"
+        border="4px solid orange"
+        borderRadius={6}
         p={2}
         spacing={3}
+        backgroundColor="white"
+        opacity="0.9"
       >
+        
         <Stack
           direction={'column'}
           spacing={2}
@@ -74,6 +84,29 @@ export default function Home() {
           overflow="auto"
           maxHeight="100%"
         >
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          p={1}
+          spacing={2}
+        >
+          <Box textAlign="center">
+            <Typography
+              color="black"
+              fontFamily="Raleway, Arial"
+              fontWeight="bold"
+              fontSize={20}
+            >
+              Rate my Professor
+            </Typography>
+          </Box>
+          <Avatar
+            alt="HeadStarter"
+            src="/face.jpg"
+            sx={{ width: 56, height: 56 }}
+          />
+        </Stack>
           {messages.map((message, index) => (
             <Box
               key={index}
@@ -86,7 +119,7 @@ export default function Home() {
                 bgcolor={
                   message.role === 'assistant'
                     ? 'primary.main'
-                    : 'secondary.main'
+                    : 'green'
                 }
                 color="white"
                 borderRadius={16}
