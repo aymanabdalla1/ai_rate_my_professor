@@ -98,7 +98,7 @@ export default function Home() {
           direction="row"
           justifyContent="center"
           alignItems="center"
-          p={1}
+          p={0}
           spacing={2}
           position={"sticky"}
         >
@@ -113,9 +113,10 @@ export default function Home() {
             </Typography>
           </Box>
           <Avatar
+          variant="square"
             alt="HeadStarter"
-            src="/face.jpg"
-            sx={{ width: 56, height: 56 }}
+            src="/face.png"
+            sx={{ width: 65, height: 65 }}
           />
         </Stack>
         <Stack
